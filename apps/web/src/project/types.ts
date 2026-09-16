@@ -1,6 +1,7 @@
 import type { FrameRate } from "opencut-wasm";
 import type { TScene } from "@/timeline/types";
 import type { MediaTime } from "@/wasm";
+import type { DirectorTranscript } from "@/ai/edit-director";
 
 export type TBackground =
 	| {
@@ -48,6 +49,8 @@ export interface TProject {
 	settings: TProjectSettings;
 	version: number;
 	timelineViewState?: TTimelineViewState;
+	/** Optional AI transcripts (MediaTime ticks). Backward compatible when absent. */
+	transcripts?: DirectorTranscript[];
 }
 
 export type TProjectSortKey = "createdAt" | "updatedAt" | "name" | "duration";
