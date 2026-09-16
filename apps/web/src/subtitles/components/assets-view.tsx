@@ -39,6 +39,13 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { DiagnosticSeverity } from "@/diagnostics/types";
+import {
+	runAiEditInEditor,
+	getTranscriptFromProject,
+	storeTranscriptOnProject,
+	transcriptionResultToDirectorTranscript,
+} from "@/ai/edit-orchestrator/run-ai-edit-live";
+import { toast } from "sonner";
 
 const DIAGNOSTIC_BUTTON_VARIANT: Record<
 	DiagnosticSeverity,
@@ -139,6 +146,9 @@ export function Captions() {
 			});
 
 			dispatch({ type: "update_step", step: "Generating captions..." });
+			const document = transcriptionResultToDirectorTranscript({ result });
+			storeTranscriptOnProject({ editor, transcript: document });
+
 			const captionChunks = buildCaptionChunks({ segments: result.segments });
 
 			if (!insertCaptions({ captions: captionChunks })) {
@@ -156,6 +166,32 @@ export function Captions() {
 						? error.message
 						: "An unexpected error occurred",
 			});
+		}
+	};
+
+	const handleAiEdit = () => {
+		try {
+			const transcript = getTranscriptFromProject({ editor });
+			const result = runAiEditInEditor({ editor, transcript });
+			if (result.status === "no_transcript" || result.status === "empty") {
+				toast.message(result.message);
+				return;
+			}
+			if (result.status === "validation_failed") {
+				toast.error(result.message);
+				return;
+			}
+			const skipped = result.execution?.skipped.length ?? 0;
+			if (result.status === "partial") {
+				toast.message(`${result.message} (${skipped} skipped)`);
+			} else {
+				toast.success(result.message);
+			}
+		} catch (error) {
+			console.error("AI Edit failed:", error);
+			toast.error(
+				error instanceof Error ? error.message : "AI Edit failed",
+			);
 		}
 	};
 
@@ -317,6 +353,15 @@ export function Captions() {
 					>
 						{isProcessing && <Spinner className="mr-1" />}
 						{isProcessing ? processing.step : "Generate transcript"}
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						className="w-full"
+						onClick={handleAiEdit}
+						disabled={isProcessing}
+					>
+						AI Edit
 					</Button>
 					{error && (
 						<div className="bg-destructive/10 border-destructive/20 rounded-md border p-3">
