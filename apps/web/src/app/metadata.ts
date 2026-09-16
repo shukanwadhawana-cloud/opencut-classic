@@ -78,8 +78,13 @@ export const baseMetaData: Metadata = {
 	appleWebApp: {
 		capable: true,
 		title: SITE_INFO.title,
+		statusBarStyle: "black-translucent",
 	},
 	manifest: "/manifest.json",
+	themeColor: [
+		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+		{ media: "(prefers-color-scheme: light)", color: "#0a0a0a" },
+	],
 	other: {
 		"msapplication-config": "/browserconfig.xml",
 	},
