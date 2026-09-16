@@ -8,6 +8,7 @@ import { baseMetaData } from "./metadata";
 import { BotIdClient } from "botid/client";
 import { webEnv } from "@/env/web";
 import { Inter } from "next/font/google";
+import { RegisterServiceWorker } from "@/pwa";
 
 const siteFont = Inter({ subsets: ["latin"] });
 
@@ -46,6 +47,7 @@ export default function RootLayout({
 					disableTransitionOnChange={true}
 				>
 					<TooltipProvider>
+						<RegisterServiceWorker />
 						<Toaster />
 						<Script
 							src="https://cdn.databuddy.cc/databuddy.js"
