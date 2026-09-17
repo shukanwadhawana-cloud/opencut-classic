@@ -9,10 +9,23 @@ import { BotIdClient } from "botid/client";
 import { webEnv } from "@/env/web";
 import { Inter } from "next/font/google";
 import { RegisterServiceWorker } from "@/pwa";
+import type { Viewport } from "next";
 
 const siteFont = Inter({ subsets: ["latin"] });
 
 export const metadata = baseMetaData;
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 5,
+	userScalable: true,
+	viewportFit: "cover",
+	themeColor: [
+		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+		{ media: "(prefers-color-scheme: light)", color: "#0a0a0a" },
+	],
+};
 
 const protectedRoutes = [
 	{
