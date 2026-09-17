@@ -2,12 +2,22 @@
 
 ## Implemented
 
-- Web App Manifest (`/manifest.json`): name, short_name, icons (192/512 valid PNG), standalone, theme/background colors
+- Web App Manifest (`/manifest.json`): name, short_name, icons (192/512), standalone, theme/background colors
 - Service worker (`/sw.js`) registered by `RegisterServiceWorker`
 - Versioned app-shell cache (`opencut-shell-v1`)
 - Offline fallback (`/offline.html`)
 - Viewport `viewport-fit=cover` + safe-area CSS variables
 - iOS `appleWebApp` + `statusBarStyle: black-translucent`
+
+## Icons
+
+If `android-icon-512x512.png` is missing or corrupt (non-PNG / wrong size):
+
+```bash
+cd apps/web && python3 scripts/generate-pwa-512-icon.py
+```
+
+Requires Pillow. PWA tests assert PNG signature and dimensions for every manifest icon.
 
 ## Not cached (by design)
 
