@@ -2,47 +2,51 @@
 
 ## Your PWA URL
 
-After a successful deploy, Render assigns:
+After deploy:
 
 ```text
 https://opencut-classic.onrender.com
 ```
 
-(Exact hostname is shown in the Render dashboard. Free tier may sleep after idle.)
+(Exact hostname is on the Render service page.)
 
-That HTTPS URL is your **PWA link** — open it in Chrome/Safari, then Install / Add to Home Screen.
+## Database is optional for now
 
-## One-time setup (dashboard)
+**Editor projects are saved in the browser** (IndexedDB + OPFS), not on Render Postgres.
 
-1. Open [https://dashboard.render.com](https://dashboard.render.com)
-2. **New → Blueprint**
-3. Connect GitHub repo **`shukanwadhawana-cloud/opencut-classic`**
-4. Select branch **`main`** — Render reads `render.yaml`
-5. Apply the blueprint (creates **Web Service** + **Postgres**)
-6. After first deploy, set env var:
+You can deploy **without** `DATABASE_URL`. Add Postgres later when you want login/accounts.
 
-   | Key | Value |
-   |-----|--------|
-   | `NEXT_PUBLIC_SITE_URL` | `https://<your-service>.onrender.com` |
+| Feature | Needs DATABASE_URL? |
+|---------|---------------------|
+| Open editor, import video, timeline | No |
+| Transcript / AI Edit / save project | No (browser storage) |
+| PWA install | No |
+| Email/password login, server accounts | **Yes** (later) |
 
-7. **Manual Deploy** once more so the public URL is baked into the client bundle
+## Web Service settings
 
-## Local equivalent
+| Field | Value |
+|--------|--------|
+| Repo | `shukanwadhawana-cloud/opencut-classic` |
+| Branch | `main` |
+| Root Directory | *(empty)* |
+| Build | `bun install && bun run build:web` |
+| Start | `bash apps/web/scripts/render-start.sh` |
 
-```bash
-bun install
-bun run build:web
-cd apps/web && bun run start
-```
+Env:
 
-## Notes
+| Key | Value |
+|-----|--------|
+| `NODE_ENV` | `production` |
+| `BUN_VERSION` | `1.2.18` |
+| `NEXT_TELEMETRY_DISABLED` | `1` |
+| `BETTER_AUTH_SECRET` | any 16+ character random string |
+| `NEXT_PUBLIC_SITE_URL` | set after first deploy to your `https://….onrender.com` |
+| `DATABASE_URL` | **skip for now** |
 
-- Free web services **spin down** after ~15 minutes idle; first request can take 30–60s
-- Build needs enough memory; if OOM, upgrade the web service plan
-- Core editor uses **IndexedDB/OPFS** in the browser; Postgres is mainly for auth/account features
-- Optional: set real `UPSTASH_REDIS_*` and Freesound keys later for full auth rate-limits / sound search
+## Later: add Postgres
 
-## Manifest / SW (once live)
-
-- `https://<your-service>.onrender.com/manifest.json`
-- `https://<your-service>.onrender.com/sw.js`
+1. New → PostgreSQL (free)
+2. Copy Internal Database URL
+3. Add `DATABASE_URL` on the web service
+4. Redeploy — auth APIs will turn on
