@@ -1,0 +1,37 @@
+name: Sync bun.lock after next pin
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "package.json"
+      - ".github/workflows/sync-bun-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.18"
+      - name: Reinstall and update lockfile
+        run: |
+          bun install
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          versions = set()
+          for p in Path(".").rglob("node_modules/next/package.json"):
+              versions.add(json.loads(p.read_text())["version"])
+          print("next versions", versions)
+          assert versions == {"16.1.3"}, versions
+          PY
+      - name: Commit lockfile if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: sync bun.lock to next@16.1.3"
+          file_pattern: bun.lock
