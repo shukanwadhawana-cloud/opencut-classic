@@ -1,0 +1,44 @@
+name: Fix PWA 512 icon
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/web/scripts/generate-pwa-512-icon.py"
+      - "apps/web/public/icons/android-icon-192x192.png"
+      - ".github/workflows/fix-pwa-512-icon.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate-icon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow and regenerate 512 icon
+        run: |
+          pip install pillow
+          python apps/web/scripts/generate-pwa-512-icon.py
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          p = Path("apps/web/public/icons/android-icon-512x512.png")
+          data = p.read_bytes()
+          assert data[:8] == b"\x89PNG\r\n\x1a\n", "bad PNG signature"
+          im = Image.open(p)
+          assert im.size == (512, 512), im.size
+          print("OK", p.stat().st_size, im.size)
+          PY
+
+      - name: Commit valid binary if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "fix: commit valid 512x512 PWA PNG binary"
+          file_pattern: apps/web/public/icons/android-icon-512x512.png
