@@ -1,0 +1,41 @@
+# OpenCut Classic — Render Blueprint (PWA web service + Postgres)
+# Dashboard: https://dashboard.render.com → New → Blueprint → connect this repo
+
+services:
+  - type: web
+    name: opencut-classic
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    # Monorepo: install from repo root
+    rootDir: .
+    buildCommand: bun install && bun run build:web
+    startCommand: bash apps/web/scripts/render-start.sh
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BUN_VERSION
+        value: "1.2.18"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: opencut-classic-db
+          property: connectionString
+      - key: NEXT_PUBLIC_SITE_URL
+        # Set after first deploy to https://opencut-classic.onrender.com
+        # (or your custom domain). Until then Render injects RENDER_EXTERNAL_URL.
+        sync: false
+      - key: NEXT_PUBLIC_MARBLE_API_URL
+        value: https://api.marblecms.com
+
+databases:
+  - name: opencut-classic-db
+    plan: free
+    databaseName: opencut
+    user: opencut
