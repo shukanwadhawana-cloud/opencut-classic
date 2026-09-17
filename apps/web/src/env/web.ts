@@ -8,20 +8,30 @@ const webEnvSchema = z.object({
 
 	// Public
 	NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
-	NEXT_PUBLIC_MARBLE_API_URL: z
-		.url()
-		.default("https://api.marblecms.com"),
+	NEXT_PUBLIC_MARBLE_API_URL: z.url().default("https://api.marblecms.com"),
 
-	// Server — required for auth/db
-	DATABASE_URL: z.string().refine(
-		(url) =>
-			url.startsWith("postgres://") || url.startsWith("postgresql://"),
-		"DATABASE_URL must be a postgres:// or postgresql:// URL",
-	),
+	/**
+	 * Optional for PWA editor deploy.
+	 * Editor projects save in the browser (IndexedDB/OPFS).
+	 * Postgres is only needed later for account login / server APIs.
+	 */
+	DATABASE_URL: z
+		.string()
+		.optional()
+		.refine(
+			(url) =>
+				!url ||
+				url.startsWith("postgres://") ||
+				url.startsWith("postgresql://"),
+			"DATABASE_URL must be a postgres:// or postgresql:// URL",
+		),
 
-	BETTER_AUTH_SECRET: z.string().min(16),
+	/** Optional until auth is enabled; placeholder allowed for editor-only deploys */
+	BETTER_AUTH_SECRET: z
+		.string()
+		.min(16)
+		.default("opencut-editor-only-dev-secret"),
 
-	// Optional integrations — placeholders so production boot is not blocked
 	UPSTASH_REDIS_REST_URL: z.url().default("http://127.0.0.1:8079"),
 	UPSTASH_REDIS_REST_TOKEN: z.string().default("local-dev-token"),
 	MARBLE_WORKSPACE_KEY: z.string().default("unused"),
@@ -32,3 +42,6 @@ const webEnvSchema = z.object({
 export type WebEnv = z.infer<typeof webEnvSchema>;
 
 export const webEnv = webEnvSchema.parse(process.env);
+
+/** True when a real Postgres URL is configured (auth/server APIs available). */
+export const isDatabaseConfigured = Boolean(webEnv.DATABASE_URL);
