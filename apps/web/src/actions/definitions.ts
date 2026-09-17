@@ -208,3 +208,21 @@ export function getDefaultShortcuts(): Map<
 
 	return shortcuts;
 }
+
+/** Actions that cannot be bound to a key without required structured args. */
+const REQUIRED_ARGS_ACTIONS: ReadonlySet<string> = new Set([
+	"remove-media-asset",
+	"remove-media-assets",
+]);
+
+const ACTION_SET: ReadonlySet<string> = new Set(Object.keys(ACTIONS));
+
+/**
+ * Runtime type guard for persisted/imported action ids that are valid
+ * keybinding targets (no required structured arguments).
+ */
+export function isActionWithOptionalArgs(
+	value: string,
+): value is TActionWithOptionalArgs {
+	return ACTION_SET.has(value) && !REQUIRED_ARGS_ACTIONS.has(value);
+}
