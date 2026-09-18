@@ -65,7 +65,7 @@ export interface SkippedEdit {
 }
 
 export interface ExecutionResult {
-	oK: boolean;
+	ok: boolean;
 	planId: string;
 	applied: AppliedEdit[];
 	skipped: SkippedEdit[];
