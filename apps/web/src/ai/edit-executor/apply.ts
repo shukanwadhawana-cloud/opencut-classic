@@ -15,7 +15,10 @@ export interface ApplicationResult {
 
 export function collectExistingStableIds({ tracks }: { tracks: SceneTracks }): Set<string> {
 	const ids = new Set<string>();
-	const all = [...tracks.main.elements, ...tracks.overlay.flatMap((t) => t.elements), ...tracks.audio.flatMap((t) => t.elements)];
+	const all: TimelineElement[] = [];
+	all.push(...tracks.main.elements);
+	for (const track of tracks.overlay) all.push(...track.elements);
+	for (const track of tracks.audio) all.push(...track.elements);
 	for (const el of all) {
 		const stable = el.params?.[AI_STABLE_ID_PARAM];
 		if (typeof stable === "string" && stable.length > 0) ids.add(stable);
