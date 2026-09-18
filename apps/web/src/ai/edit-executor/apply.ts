@@ -1,7 +1,7 @@
 import type { SceneTracks, TimelineElement, TimelineTrack, VideoTrack, TextTrack, GraphicElement, TextElement, VideoElement } from "@/timeline/types";
 import type { MediaTime } from "@/wasm";
 import type { ExecutionResult, KeyframeBlueprint, TimelineElementBlueprint } from "./types";
-import { AI_STABLE_ID_PARAM } from "./types";
+import { AI_STABLE_ID_PARAM, buildAiElementParams } from "./types";
 import type { AnimationPath, ElementAnimations } from "@/animation/types";
 
 export interface ApplicationSkip {
@@ -31,7 +31,7 @@ function blueprintToElement({ blueprint }: { blueprint: TimelineElementBlueprint
 	const name = String(payload.name ?? "AI element");
 	const startTime = asMediaTime(Number(payload.startTime ?? blueprint.start));
 	const duration = asMediaTime(Number(payload.duration ?? blueprint.duration));
-	const params = { ...((payload.params as Record<string, unknown>) ?? {}), [AI_STABLE_ID_PARAM]: blueprint.stableId, aiProvenance: blueprint.provenance };
+	const params = buildAiElementParams({ base: (payload.params as Record<string, unknown> | undefined) ?? null, stableId: blueprint.stableId, provenance: blueprint.provenance });
 	if ((duration as number) <= 0) return null;
 	if (type === "text") return { id: blueprint.stableId, type: "text", name, startTime, duration, trimStart: asMediaTime(0), trimEnd: asMediaTime(0), params } as TextElement;
 	if (type === "graphic") return { id: blueprint.stableId, type: "graphic", name, definitionId: String(payload.definitionId ?? "rectangle"), startTime, duration, trimStart: asMediaTime(0), trimEnd: asMediaTime(0), params } as GraphicElement;

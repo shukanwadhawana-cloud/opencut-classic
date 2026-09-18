@@ -1,6 +1,7 @@
 import type { EditInstruction } from "@/ai/edit-director/schema";
 import type { KeyframeBlueprint, TimelineElementBlueprint } from "./types";
 import { makeProvenance, makeStableElementId } from "./idempotency";
+import { buildAiElementParams } from "./types";
 
 export interface MapInstructionResult {
 	blueprints: TimelineElementBlueprint[];
@@ -33,7 +34,11 @@ export function mapInstructionToBlueprints({
 		trackHint: "text", start: edit.start, duration, provenance,
 		payload: {
 			type: "text", name, startTime: edit.start, duration, trimStart: 0, trimEnd: 0,
-			params: { ...params, aiStableId: makeStableElementId({ planId, instructionId: edit.id, role }), aiProvenance: provenance },
+			params: buildAiElementParams({
+				base: params,
+				stableId: makeStableElementId({ planId, instructionId: edit.id, role }),
+				provenance,
+			}),
 		},
 	});
 	switch (edit.type) {
@@ -53,7 +58,11 @@ export function mapInstructionToBlueprints({
 			return { blueprints: [{ kind: "graphic", stableId, trackHint: "graphic", start: edit.start, duration, provenance, payload: {
 				type: "graphic", name: edit.metadata.label ?? edit.metadata.graphicKind, definitionId: "rectangle",
 				startTime: edit.start, duration, trimStart: 0, trimEnd: 0,
-				params: { "transform.scaleX": 0.35, "transform.scaleY": 0.35, opacity: 0.85, fill: "#4cc9f0", aiStableId: stableId, aiProvenance: provenance },
+				params: buildAiElementParams({
+				base: { "transform.scaleX": 0.35, "transform.scaleY": 0.35, opacity: 0.85, fill: "#4cc9f0" },
+				stableId,
+				provenance,
+			}),
 			}}], keyframes: [] };
 		}
 		case "diagram": {
