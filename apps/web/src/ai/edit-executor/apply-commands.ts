@@ -9,7 +9,7 @@ import type { CreateTimelineElement, SceneTracks, VideoElement } from "@/timelin
 import type { MediaTime } from "@/wasm";
 import type { AnimationPath, AnimationInterpolation } from "@/animation/types";
 import type { ExecutionResult } from "./types";
-import { AI_STABLE_ID_PARAM } from "./types";
+import { buildAiElementParams } from "./types";
 import { collectExistingStableIds } from "./apply";
 
 function asMediaTime(ticks: number): MediaTime {
@@ -44,11 +44,11 @@ export function buildCommandsFromExecutionResult({
 			skippedStableIds.push(bp.stableId);
 			continue;
 		}
-		const params = {
-			...((bp.payload.params as Record<string, unknown>) ?? {}),
-			[AI_STABLE_ID_PARAM]: bp.stableId,
-			aiProvenance: bp.provenance,
-		};
+		const params = buildAiElementParams({
+			base: (bp.payload.params as Record<string, unknown> | undefined) ?? null,
+			stableId: bp.stableId,
+			provenance: bp.provenance,
+		});
 		const element: CreateTimelineElement =
 			bp.payload.type === "graphic"
 				? {
