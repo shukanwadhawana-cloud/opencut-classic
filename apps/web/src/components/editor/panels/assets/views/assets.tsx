@@ -95,15 +95,27 @@ export function MediaView() {
 						onProgress: (progress: { progress: number }) =>
 							setProgress(progress.progress),
 					});
+					const savedAssets: MediaAsset[] = [];
+					const failedNames: string[] = [];
 					for (const asset of processedAssets) {
-						await editor.media.addMediaAsset({
+						const savedAsset = await editor.media.addMediaAsset({
 							projectId: activeProject.metadata.id,
 							asset,
 						});
+						if (savedAsset) {
+							savedAssets.push(savedAsset);
+						} else {
+							failedNames.push(asset.name);
+						}
+					}
+					if (failedNames.length > 0) {
+						throw new Error(
+							`Could not save ${failedNames.length} file${failedNames.length === 1 ? "" : "s"} to browser storage: ${failedNames.join(", ")}`,
+						);
 					}
 					return {
-						uploadedCount: processedAssets.length,
-						assetNames: processedAssets.map((asset) => asset.name),
+						uploadedCount: savedAssets.length,
+						assetNames: savedAssets.map((asset) => asset.name),
 					};
 				},
 			});
