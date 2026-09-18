@@ -52,6 +52,18 @@ function normalizeBookmarks({ raw }: { raw: unknown }): Bookmark[] {
 		.filter((b): b is Bookmark => b !== null);
 }
 
+function guessMediaMimeType({ name, type }: { name: string; type: MediaAsset["type"] }): string {
+	const ext = name.toLowerCase().split(".").pop() ?? "";
+	const known: Record<string, string> = {
+		mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm",
+		mkv: "video/x-matroska", avi: "video/x-msvideo", mpeg: "video/mpeg", mpg: "video/mpeg",
+		mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg",
+		flac: "audio/flac", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+		webp: "image/webp", gif: "image/gif", svg: "image/svg+xml",
+	};
+	return known[ext] ?? (type === "video" ? "video/mp4" : type === "audio" ? "audio/mpeg" : "image/png");
+}
+
 class StorageService {
 	private projectsAdapter: IndexedDBAdapter<SerializedProject>;
 	private savedSoundsAdapter: IndexedDBAdapter<SavedSoundsData>;
@@ -372,6 +384,16 @@ class StorageService {
 			file = await fallbackMediaAssetsAdapter.get(id);
 		}
 		if (!file) return null;
+
+		// IndexedDB/OPFS should preserve File metadata, but some browsers can restore
+		// the payload as a Blob or drop the MIME type. Rehydrate a real File so the
+		// MediaBunny decoder and browser media APIs receive a stable type/name.
+		if (!(file instanceof File) || !file.type) {
+			file = new File([file], metadata.name, {
+				type: file.type || guessMediaMimeType({ name: metadata.name, type: metadata.type }),
+				lastModified: metadata.lastModified,
+			});
+		}
 
 		let url: string;
 		if (metadata.type === "image" && (!file.type || file.type === "")) {
