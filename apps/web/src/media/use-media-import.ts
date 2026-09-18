@@ -24,13 +24,24 @@ export function useMediaImport() {
 		try {
 			await showMediaUploadToast({
 				filesCount: files.length,
-				promise: async () =>
-					importMediaFilesToProject({
+				promise: async () => {
+					const result = await importMediaFilesToProject({
 						editor,
 						projectId: activeProject.metadata.id,
 						files,
 						onProgress: (p) => setProgress(p.progress),
-					}),
+					});
+					if (result.failedNames.length > 0) {
+						toast.error(
+							`Could not save ${result.failedNames.length} file(s)`,
+							{ description: result.failedNames.join(", ") },
+						);
+					}
+					return {
+						uploadedCount: result.uploadedCount,
+						assetNames: result.assetNames,
+					};
+				},
 			});
 		} catch (error) {
 			console.error("Error processing files:", error);
