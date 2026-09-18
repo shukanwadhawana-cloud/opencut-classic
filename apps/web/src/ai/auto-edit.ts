@@ -93,7 +93,6 @@ export async function runAutoEdit({
     tracks: sceneBeforeAi.tracks,
     fps,
     durationTicks,
-    allowMainTransformKeyframes: true,
   });
   if (aiResult.application) {
     editor.timeline.updateTracks(aiResult.application.tracks);
