@@ -3,6 +3,7 @@ import { getProjectDurationFromScenes } from "@/timeline/scenes";
 import type { MediaAsset } from "@/media/types";
 import { IndexedDBAdapter } from "./indexeddb-adapter";
 import { OPFSAdapter } from "./opfs-adapter";
+import { IndexedDBFileAdapter } from "./indexeddb-file-adapter";
 import {
 	type StorageCapacityCheckResult,
 	StorageQuotaExceededError,
@@ -98,8 +99,13 @@ class StorageService {
 		});
 
 		const mediaAssetsAdapter = new OPFSAdapter(`media-files-${projectId}`);
+		const fallbackMediaAssetsAdapter = new IndexedDBFileAdapter({
+			dbName: `video-editor-media-fallback-${projectId}`,
+			storeName: "media-files",
+			version: 1,
+		});
 
-		return { mediaMetadataAdapter, mediaAssetsAdapter };
+		return { mediaMetadataAdapter, mediaAssetsAdapter, fallbackMediaAssetsAdapter };
 	}
 
 	async canStoreFile({
@@ -299,7 +305,7 @@ class StorageService {
 		projectId: string;
 		mediaAsset: MediaAsset;
 	}): Promise<void> {
-		const { mediaMetadataAdapter, mediaAssetsAdapter } =
+		const { mediaMetadataAdapter, mediaAssetsAdapter, fallbackMediaAssetsAdapter } =
 			this.getProjectMediaAdapters({ projectId });
 
 		const metadata: MediaAssetData = {
@@ -316,10 +322,12 @@ class StorageService {
 		};
 
 		try {
-			await mediaAssetsAdapter.set({
-				key: mediaAsset.id,
-				value: mediaAsset.file,
-			});
+			try {
+				await mediaAssetsAdapter.set({ key: mediaAsset.id, value: mediaAsset.file });
+			} catch (opfsError) {
+				console.warn("[storage] OPFS media save failed; using IndexedDB fallback:", opfsError);
+				await fallbackMediaAssetsAdapter.set({ key: mediaAsset.id, value: mediaAsset.file });
+			}
 			await mediaMetadataAdapter.set({
 				key: mediaAsset.id,
 				value: metadata,
@@ -327,6 +335,11 @@ class StorageService {
 		} catch (error) {
 			try {
 				await mediaAssetsAdapter.remove(mediaAsset.id);
+			} catch {
+				// Ignore OPFS cleanup failures.
+			}
+			try {
+				await fallbackMediaAssetsAdapter.remove(mediaAsset.id);
 			} catch {
 				// Ignore cleanup failures so the original storage error is preserved.
 			}
@@ -348,15 +361,17 @@ class StorageService {
 		projectId: string;
 		id: string;
 	}): Promise<MediaAsset | null> {
-		const { mediaMetadataAdapter, mediaAssetsAdapter } =
+		const { mediaMetadataAdapter, mediaAssetsAdapter, fallbackMediaAssetsAdapter } =
 			this.getProjectMediaAdapters({ projectId });
 
-		const [file, metadata] = await Promise.all([
-			mediaAssetsAdapter.get(id),
-			mediaMetadataAdapter.get(id),
-		]);
+		const metadata = await mediaMetadataAdapter.get(id);
+		if (!metadata) return null;
 
-		if (!file || !metadata) return null;
+		let file = await mediaAssetsAdapter.get(id);
+		if (!file) {
+			file = await fallbackMediaAssetsAdapter.get(id);
+		}
+		if (!file) return null;
 
 		let url: string;
 		if (metadata.type === "image" && (!file.type || file.type === "")) {
@@ -418,11 +433,12 @@ class StorageService {
 		projectId: string;
 		id: string;
 	}): Promise<void> {
-		const { mediaMetadataAdapter, mediaAssetsAdapter } =
+		const { mediaMetadataAdapter, mediaAssetsAdapter, fallbackMediaAssetsAdapter } =
 			this.getProjectMediaAdapters({ projectId });
 
 		await Promise.all([
 			mediaAssetsAdapter.remove(id),
+			fallbackMediaAssetsAdapter.remove(id),
 			mediaMetadataAdapter.remove(id),
 		]);
 	}
@@ -432,12 +448,13 @@ class StorageService {
 	}: {
 		projectId: string;
 	}): Promise<void> {
-		const { mediaMetadataAdapter, mediaAssetsAdapter } =
+		const { mediaMetadataAdapter, mediaAssetsAdapter, fallbackMediaAssetsAdapter } =
 			this.getProjectMediaAdapters({ projectId });
 
 		await Promise.all([
 			mediaMetadataAdapter.clear(),
 			mediaAssetsAdapter.clear(),
+			fallbackMediaAssetsAdapter.clear(),
 		]);
 	}
 
