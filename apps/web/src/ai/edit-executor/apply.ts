@@ -1,6 +1,6 @@
-import type { SceneTracks, TimelineElement, TimelineTrack, VideoTrack, TextTrack, GraphicElement, TextElement, VideoElement } from "@/timeline/types";
+import type { SceneTracks, TimelineElement, TimelineTrack, VideoTrack, TextTrack, GraphicTrack, GraphicElement, TextElement, VideoElement } from "@/timeline/types";
 import type { MediaTime } from "@/wasm";
-import type { ExecutionResult, KeyframeBlueprint, TimelineElementBlueprint } from "./types";
+import type { ExecutionResult, TimelineElementBlueprint } from "./types";
 import { AI_STABLE_ID_PARAM, buildAiElementParams } from "./types";
 import type { AnimationPath, ElementAnimations } from "@/animation/types";
 
@@ -55,16 +55,16 @@ export function applyExecutionResult({ result, tracks }: { result: ExecutionResu
 		const element = blueprintToElement({ blueprint: bp });
 		if (!element) { skipped.push({ stableId: bp.stableId, reason: "Unsupported", code: "unsupported_payload" }); continue; }
 		const trackType = bp.payload.type === "graphic" ? "graphic" : "text";
-		let track = next.overlay.find((t) => t.type === trackType);
+		let track: TextTrack | GraphicTrack | undefined = next.overlay.find((t): t is TextTrack | GraphicTrack => t.type === trackType);
 		if (!track) {
 			const trackId = `ai-track-${trackType}`;
-			const newTrack = trackType === "text"
-				? { id: trackId, name: "AI Text", type: "text" as const, elements: [], hidden: false }
-				: { id: trackId, name: "AI Graphics", type: "graphic" as const, elements: [], hidden: false };
+			const newTrack: TextTrack | GraphicTrack = trackType === "text"
+				? { id: trackId, name: "AI Text", type: "text", elements: [], hidden: false }
+				: { id: trackId, name: "AI Graphics", type: "graphic", elements: [], hidden: false };
 			next = { ...next, overlay: [...next.overlay, newTrack] };
-			track = newTrack as typeof track;
+			track = newTrack;
 		}
-		const tid = track!.id;
+		const tid = track.id;
 		next = {
 			...next,
 			overlay: next.overlay.map((t) => t.id === tid ? { ...t, elements: [...t.elements, element] } as TimelineTrack : t) as typeof next.overlay,
